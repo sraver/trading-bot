@@ -1,16 +1,20 @@
 from discord_notify import Notifier as DiscordNotifier
 import datetime
+import config
 
 
 class Notifier:
 
-    def __init__(self, handler: DiscordNotifier):
-        self.__handler = handler
+    def __init__(self):
+        self.__handler = DiscordNotifier(config.DISCORD_WEBHOOK_URL)
 
     def send(self, text):
-        # self.__handler.send(message=text, print_message=False)
+        try:
+            self.__handler.send(message=text, print_message=False)
+        except:
+            # If no Webhook was set or it fails, show must go on
+            pass
         self.__log_to_file(text)
-        pass
 
     @staticmethod
     def __log_to_file(text):

@@ -1,3 +1,4 @@
+import config
 import ccxt
 import pandas as pd
 from pandas import DataFrame
@@ -7,8 +8,11 @@ from external.Order import Order
 
 class Exchange:
 
-    def __init__(self, exchange: ccxt.Exchange):
-        self.__exchange = exchange
+    def __init__(self):
+        self.__exchange = ccxt.binanceusdm({
+            "apiKey": config.BINANCE_API_KEY,
+            "secret": config.BINANCE_SECRET_KEY
+        })
 
     def free_balance(self) -> float:
         balance = self.__exchange.fetch_balance()

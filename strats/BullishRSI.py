@@ -1,9 +1,6 @@
 import numpy as np
-from abc import abstractmethod
 import talib
 
-from external.Exchange import Exchange
-from external.Notifier import Notifier
 from strats.Strategy import Strategy
 
 
@@ -11,26 +8,21 @@ class BullishRSI(Strategy):
 
     def __init__(self,
                  name: str,
-                 exchange: Exchange,
                  symbol: str,
                  budget_percent: int,
                  leverage: int,
-                 notifier: Notifier,
                  ):
         super().__init__(
             name=name,
-            exchange=exchange,
             budget_percent=budget_percent,
             leverage=leverage,
-            notifier=notifier,
             symbol=symbol,
             main_tf='1m'
         )
         self.__entry_price = None
         self.__exit_price = None
-        self.__stop_loss = 10
+        self.__stop_loss = 7
 
-    @abstractmethod
     def execute(self):
         self.notifier().log(f'\n{self.symbol()}')
 

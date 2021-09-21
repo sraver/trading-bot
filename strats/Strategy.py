@@ -11,17 +11,15 @@ from external.Order import Order
 class Strategy:
     def __init__(self,
                  name: str,
-                 exchange: Exchange,
                  budget_percent: int,
                  leverage: int,
-                 notifier: Notifier,
                  symbol: str,
                  main_tf='1m'
                  ):
         self.__name = name
-        self.__exchange = exchange
-        self.__notifier = notifier
         self.__symbol = symbol
+        self.__exchange = Exchange()
+        self.__notifier = Notifier()
         self.__budget_percent = self.__valid_budget_percent(budget_percent)
         self.__leverage = self.__valid_leverage(leverage)
         self.__main_tf = main_tf
