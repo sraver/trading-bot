@@ -14,7 +14,8 @@ class Strategy:
                  budget_percent: int,
                  leverage: int,
                  symbol: str,
-                 timeframes
+                 timeframes,
+                 stop_loss: int = 5
                  ):
         self.__name = name
         self.__symbol = symbol
@@ -26,6 +27,9 @@ class Strategy:
         self.__prices = {}
         self.__in_position = False
         self.__order = None
+        self.__entry_price = None
+        self.__exit_price = None
+        self.__stop_loss = stop_loss
 
     @staticmethod
     def __valid_budget_percent(value) -> int:
@@ -72,19 +76,45 @@ class Strategy:
     def order(self) -> Order:
         return self.__order
 
-    @abstractmethod
-    def execute(self) -> None:
-        """Execute the strategy's logic.
-
-        Different strategies can be done by overriding this method"""
-        pass
-
     def run(self) -> None:
         """Entry point"""
         for tf in self.__timeframes:
             self.fetch_prices(timeframe=tf)
-
         self.execute()
+
+    def execute(self) -> None:
+        last_price = self.last_price('close')
+        self.notify(f'Mark price: {last_price} / In position: {self.in_position()}')
+        if self.in_position():
+            if self.is_opportunity_to_exit():
+                self.exit()
+                gains = self.pnl_percent(self.__entry_price, self.__exit_price)
+                self.notify(f'Sell @ {self.__exit_price} # PNL {gains} %')
+            else:
+                gains = self.pnl_percent(self.__entry_price, last_price)
+                if gains <= -self.__stop_loss:
+                    self.exit()
+                    self.notify(f'SL @ {self.__exit_price} # PNL {gains} %')
+                self.__show_stats(last_price, gains)
+        elif self.is_opportunity_to_enter():
+            self.enter()
+            self.notify(f'Buy @ {self.__entry_price}')
+
+    @abstractmethod
+    def is_opportunity_to_enter(self) -> bool:
+        pass
+
+    @abstractmethod
+    def is_opportunity_to_exit(self) -> bool:
+        pass
+
+    @abstractmethod
+    def enter(self) -> None:
+        pass
+
+    @abstractmethod
+    def exit(self) -> None:
+        pass
 
     def fetch_prices(self, timeframe=None) -> None:
         """Fetches and stores the bars data for the specified timeframe.
@@ -123,6 +153,7 @@ class Strategy:
                                                     params=params)
         self.__notifier.log(self.__order.__str__())
         self.open_position()
+        self.__entry_price = self.__order.avg_price()
 
     def market_out(self, side, params=None):
         size = self.order().asset_amount()
@@ -130,6 +161,7 @@ class Strategy:
                                                     params=params)
         self.__notifier.log(self.__order.__str__())
         self.close_position()
+        self.__exit_price = self.__order.avg_price()
 
     def price_difference(self, entry_price, mark_price) -> float:
         difference = (mark_price / entry_price - 1) * 100
@@ -138,7 +170,15 @@ class Strategy:
     def pnl_percent(self, entry_price, mark_price) -> float:
         return np.round(self.price_difference(entry_price, mark_price) * self.__leverage, 3)
 
+    def notify(self, msg):
+        self.__notifier.send(f'\n{self.symbol()} -- [{self.name()}] {msg}')
+
     def __select_timeframe(self, timeframe) -> str:
         if not timeframe:
             return self.__timeframes[0]
         return timeframe
+
+    def __show_stats(self, last_price, gains):
+        self.__notifier.log(f"Bought at: {self.__entry_price} / Current: {last_price}")
+        percent = self.price_difference(self.__entry_price, last_price)
+        self.__notifier.log(f'SL at {self.__stop_loss}%. Current PNL:  {gains}% / Price diff: {percent}')

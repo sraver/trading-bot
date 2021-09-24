@@ -1,4 +1,5 @@
 import talib
+from pandas import Series
 
 from strats.Strategy import Strategy
 
@@ -16,53 +17,29 @@ class LongRSI(Strategy):
             budget_percent=budget_percent,
             leverage=leverage,
             symbol=symbol,
-            timeframes=['1m', '15m']
+            timeframes=['1m', '15m'],
+            stop_loss=7
         )
-        self.__entry_price = None
-        self.__exit_price = None
-        self.__stop_loss = 7
 
-    def execute(self):
-        rsi_1m = talib.RSI(self.prices(column='close', timeframe='1m'), timeperiod=14)
-        rsi_15m = talib.RSI(self.prices(column='close', timeframe='15m'), timeperiod=14)
-
-        last_price = self.last_price('close')
-        self.notifier().log(f"\n{self.symbol()} -- Mark price: {last_price} / Position: {self.in_position()}")
-
-        if self.in_position():
-            if self.is_sell_opportunity(rsi_1m, rsi_15m):
-                self.sell()
-                gains = self.pnl_percent(self.__entry_price, self.__exit_price)
-                self.notifier().send(f'[{self.name()}] Sell @ {self.__exit_price} # PNL {gains} %')
-            else:
-                gains = self.pnl_percent(self.__entry_price, last_price)
-                self.__show_stats(last_price, gains)
-                if gains <= -self.__stop_loss:
-                    self.sell()
-                    self.notifier().send(f'[{self.name()}] SL @ {self.__exit_price} # PNL {gains} %')
-        elif self.is_buy_opportunity(rsi_1m, rsi_15m):
-            self.buy()
-            self.notifier().send(f'[{self.name()}] Buy @ {self.__entry_price}')
-
-    def __show_stats(self, last_price, gains):
-        self.notifier().log(f"Bought at: {self.__entry_price} / Current: {last_price}")
-        percent = self.price_difference(self.__entry_price, last_price)
-        self.notifier().log(f'SL at {self.__stop_loss}%. Current PNL:  {gains}% / Price diff: {percent}')
-
-    def is_buy_opportunity(self, rsi_1m, rsi_15m):
+    def is_opportunity_to_enter(self) -> bool:
+        rsi_1m = self.__get_rsi('1m')
+        rsi_15m = self.__get_rsi('15m')
         valid_rsi_1m = rsi_1m.iloc[-1] <= 30
         valid_rsi_15m = (rsi_15m.iloc[-3:] <= 30).all()
         return valid_rsi_1m and valid_rsi_15m
 
-    def is_sell_opportunity(self, rsi_1m, rsi_15m):
+    def is_opportunity_to_exit(self) -> bool:
+        rsi_1m = self.__get_rsi('1m')
+        rsi_15m = self.__get_rsi('15m')
         valid_rsi_1m = rsi_1m.iloc[-1] >= 70
         valid_rsi_15m = rsi_15m.iloc[-1] >= 70
         return valid_rsi_1m and valid_rsi_15m
 
-    def buy(self):
+    def enter(self) -> None:
         self.market_in('buy')
-        self.__entry_price = self.order().avg_price()
 
-    def sell(self):
+    def exit(self) -> None:
         self.market_out('sell')
-        self.__exit_price = self.order().avg_price()
+
+    def __get_rsi(self, tf) -> Series:
+        return talib.RSI(self.prices(column='close', timeframe=tf), timeperiod=14)
