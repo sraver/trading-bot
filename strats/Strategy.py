@@ -14,7 +14,7 @@ class Strategy:
                  budget_percent: int,
                  leverage: int,
                  symbol: str,
-                 main_tf='1m'
+                 timeframes
                  ):
         self.__name = name
         self.__symbol = symbol
@@ -22,7 +22,7 @@ class Strategy:
         self.__notifier = Notifier()
         self.__budget_percent = self.__valid_budget_percent(budget_percent)
         self.__leverage = self.__valid_leverage(leverage)
-        self.__main_tf = main_tf
+        self.__timeframes = self.__valid_timeframes(timeframes)
         self.__prices = {}
         self.__in_position = False
         self.__order = None
@@ -38,6 +38,12 @@ class Strategy:
         if value < 1 or value > 100:
             raise Exception("Leverage must be [1, 100]")
         return int(value)
+
+    @staticmethod
+    def __valid_timeframes(value):
+        if len(value) == 0:
+            raise Exception("Timeframe required")
+        return value
 
     def exchange(self) -> Exchange:
         return self.__exchange
@@ -75,7 +81,9 @@ class Strategy:
 
     def run(self) -> None:
         """Entry point"""
-        self.fetch_prices()
+        for tf in self.__timeframes:
+            self.fetch_prices(timeframe=tf)
+
         self.execute()
 
     def fetch_prices(self, timeframe=None) -> None:
@@ -132,5 +140,5 @@ class Strategy:
 
     def __select_timeframe(self, timeframe) -> str:
         if not timeframe:
-            return self.__main_tf
+            return self.__timeframes[0]
         return timeframe

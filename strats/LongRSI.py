@@ -16,17 +16,15 @@ class LongRSI(Strategy):
             budget_percent=budget_percent,
             leverage=leverage,
             symbol=symbol,
-            main_tf='1m'
+            timeframes=['1m', '15m']
         )
         self.__entry_price = None
         self.__exit_price = None
         self.__stop_loss = 7
 
     def execute(self):
-        secondary_tf = '15m'
-        self.fetch_prices(secondary_tf)
-        rsi_1m = talib.RSI(self.prices(column='close'), timeperiod=14)
-        rsi_15m = talib.RSI(self.prices(column='close', timeframe=secondary_tf), timeperiod=14)
+        rsi_1m = talib.RSI(self.prices(column='close', timeframe='1m'), timeperiod=14)
+        rsi_15m = talib.RSI(self.prices(column='close', timeframe='15m'), timeperiod=14)
 
         last_price = self.last_price('close')
         self.notifier().log(f"\n{self.symbol()} -- Mark price: {last_price} / Position: {self.in_position()}")
