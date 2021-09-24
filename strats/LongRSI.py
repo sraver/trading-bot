@@ -23,9 +23,10 @@ class LongRSI(Strategy):
         self.__stop_loss = 7
 
     def execute(self):
-        self.fetch_prices('15m')
+        secondary_tf = '15m'
+        self.fetch_prices(secondary_tf)
         rsi_1m = talib.RSI(self.prices(column='close'), timeperiod=14)
-        rsi_15m = talib.RSI(self.prices(column='close', timeframe='15m'), timeperiod=14)
+        rsi_15m = talib.RSI(self.prices(column='close', timeframe=secondary_tf), timeperiod=14)
 
         last_price = self.last_price('close')
         self.notifier().log(f"\n{self.symbol()} -- Mark price: {last_price} / Position: {self.in_position()}")
@@ -59,7 +60,7 @@ class LongRSI(Strategy):
 
     def is_sell_opportunity(self, rsi_1m, rsi_15m):
         valid_rsi_1m = rsi_1m.iloc[-1] >= 70
-        valid_rsi_15m = rsi_15m.iloc[1] >= 70
+        valid_rsi_15m = rsi_15m.iloc[-1] >= 70
         return valid_rsi_1m and valid_rsi_15m
 
     def buy(self):
