@@ -1,12 +1,12 @@
 import schedule
 import time
 
-from strats.BullishRSI import BullishRSI
+from strats.LongRSI import LongRSI
 
 # TODO : check for config.py existence
 
 strats = [
-    BullishRSI(symbol="ETH/USDT", budget_percent=5, leverage=10, name='BullishEth')
+    LongRSI(symbol="ETH/USDT", budget_percent=5, leverage=10, name='BullishEth')
 ]
 
 for strat in strats:
