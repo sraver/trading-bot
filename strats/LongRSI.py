@@ -31,22 +31,20 @@ class LongRSI(Strategy):
         last_price = self.last_price('close')
         self.notifier().log(f"\n{self.symbol()} -- Mark price: {last_price} / Position: {self.in_position()}")
 
-        if not self.in_position() and self.is_buy_opportunity(rsi_1m, rsi_15m):
+        if self.in_position():
+            if self.is_sell_opportunity(rsi_1m, rsi_15m):
+                self.sell()
+                gains = self.pnl_percent(self.__entry_price, self.__exit_price)
+                self.notifier().send(f'[{self.name()}] Sell @ {self.__exit_price} # PNL {gains} %')
+            else:
+                gains = self.pnl_percent(self.__entry_price, last_price)
+                self.__show_stats(last_price, gains)
+                if gains <= -self.__stop_loss:
+                    self.sell()
+                    self.notifier().send(f'[{self.name()}] SL @ {self.__exit_price} # PNL {gains} %')
+        elif self.is_buy_opportunity(rsi_1m, rsi_15m):
             self.buy()
             self.notifier().send(f'[{self.name()}] Buy @ {self.__entry_price}')
-
-        if self.in_position() and self.is_sell_opportunity(rsi_1m, rsi_15m):
-            self.sell()
-            gains = self.pnl_percent(self.__entry_price, self.__exit_price)
-            self.notifier().send(f'[{self.name()}] Sell @ {self.__exit_price} # PNL {gains}%')
-
-        if self.in_position():
-            gains = self.pnl_percent(self.__entry_price, last_price)
-            self.__show_stats(last_price, gains)
-
-            if gains <= -self.__stop_loss:
-                self.sell()
-                self.notifier().send(f'[{self.name()}] SL @ {self.__exit_price} # PNL {gains}')
 
     def __show_stats(self, last_price, gains):
         self.notifier().log(f"Bought at: {self.__entry_price} / Current: {last_price}")
