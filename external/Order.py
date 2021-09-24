@@ -7,3 +7,6 @@ class Order:
 
     def __str__(self):
         return self.__order
+
+    def asset_amount(self):
+        return float(self.__order['info']['executedQty'])

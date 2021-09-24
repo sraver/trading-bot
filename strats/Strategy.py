@@ -25,6 +25,7 @@ class Strategy:
         self.__main_tf = main_tf
         self.__prices = {}
         self.__in_position = False
+        self.__order = None
 
     @staticmethod
     def __valid_budget_percent(value) -> int:
@@ -61,6 +62,9 @@ class Strategy:
 
     def name(self):
         return self.__name
+
+    def order(self) -> Order:
+        return self.__order
 
     @abstractmethod
     def execute(self) -> None:
@@ -105,15 +109,19 @@ class Strategy:
         self.__notifier.log(f"free usdt: {free_usdt} / Cost: {balance_to_use} / Position size: {asset_amount}")
         return asset_amount
 
-    def market_sell(self, size, params=None) -> Order:
-        order = self.__exchange.create_order(pair=self.symbol(), type='market', side='sell', size=size, params=params)
-        self.__notifier.log(order.__str__())
-        return order
+    def market_in(self, side, params=None):
+        size = self.position_size()
+        self.__order = self.__exchange.create_order(pair=self.symbol(), type='market', side=side, size=size,
+                                                    params=params)
+        self.__notifier.log(self.__order.__str__())
+        self.open_position()
 
-    def market_buy(self, size, params=None) -> Order:
-        order = self.__exchange.create_order(pair=self.symbol(), type='market', side='buy', size=size, params=params)
-        self.__notifier.log(order.__str__())
-        return order
+    def market_out(self, side, params=None):
+        size = self.order().asset_amount()
+        self.__order = self.__exchange.create_order(pair=self.symbol(), type='market', side=side, size=size,
+                                                    params=params)
+        self.__notifier.log(self.__order.__str__())
+        self.close_position()
 
     def price_difference(self, entry_price, mark_price) -> float:
         difference = (mark_price / entry_price - 1) * 100
